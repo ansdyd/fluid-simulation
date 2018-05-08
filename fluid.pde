@@ -252,7 +252,8 @@ void initPressure() {
 }
 
 void addForces() {
-  if (mousePressed) {
+  boolean mouseMoved = (mouseX != pmouseX) || (mouseY != pmouseY);
+  if (mousePressed && mouseMoved) {
     int x = (gridSize * mouseY) / height;
     int y = (gridSize * mouseX) / width;
 
