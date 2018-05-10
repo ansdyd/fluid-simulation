@@ -1,10 +1,12 @@
 float dt = 0.01;
-int n = 128;
+int n = 256;
 int gridSize = n + 2;
-int pixelSize = 4;
+int pixelSize = 2;
 
 int JACOBI_ITERATION = 10;
 float FORCE_RADIUS = n / 25.0;
+
+char lastKey;
 
 float[][] u = new float[gridSize][gridSize];
 float[][] v = new float[gridSize][gridSize];
@@ -18,6 +20,8 @@ float[][] prevPressure = new float[gridSize][gridSize];
 color[][] prevColor = new color[gridSize][gridSize];
 color[][] currentColor = new color[gridSize][gridSize];
 
+PImage finklesteinImage;
+
 void setup() {
   background(0);
   noStroke();
@@ -26,11 +30,16 @@ void setup() {
   initColor();
   initVelocity();
   initPressure();
+
+  finklesteinImage = loadImage("finklestein.jpeg");
 }
 
 void draw() {
-  // Following the instructions given in the jos stam paper.
+  if (keyPressed) {
+    lastKey = key;
+  }
 
+  // Following the instructions given in the jos stam paper.
   addForces();
 
   // Advect u.
@@ -53,6 +62,22 @@ void draw() {
   drawColor();
 
   swapVelocity();
+}
+
+void keyReleased() {
+  if (lastKey == 'f') {
+    addFinklestein();
+  } else if (lastKey == 'k') {
+    makeCheckerBoard();
+  } else if (lastKey == 'c') {
+    clear();
+  } else if (lastKey == 'r') {
+    randomSplat();
+  } else if (lastKey == 'v') {
+    makeVortex();
+  } else if (lastKey == 't') {
+    stopMotion();
+  }
 }
 
 void subtractPressureGradient() {
@@ -213,16 +238,8 @@ void advectVelocity() {
 void initColor() {
   for (int i = 0; i < gridSize; i++) {
     for (int j = 0; j < gridSize; j++) {
-      int x = floor(i / 16.0);
-      int y = floor(j / 16.0);
-      int mod = (x + y) % 2;
-      if (mod == 0) {
-        prevColor[i][j] = color(255, 255, 255);
-        currentColor[i][j] = color(255, 255, 255);
-      } else {
-        prevColor[i][j] = color(0, 0, 0);
-        currentColor[i][j] = color(0, 0, 0);
-      }
+      prevColor[i][j] = color(0, 0, 0);
+      currentColor[i][j] = color(0, 0, 0);
     }
   }
 }
@@ -285,4 +302,92 @@ void drawColor() {
     pixels[k] = currentColor[iSample][jSample];
   }
   updatePixels();
+}
+
+void addFinklestein() {
+  int imageWidth = finklesteinImage.width;
+  int imageHeight = finklesteinImage.height;
+
+  for (int i = 0; i < gridSize; i++) {
+    for (int j = 0; j < gridSize; j++) {
+      int projectedI = round(((float) i / gridSize) * imageHeight);
+      int projectedJ = round(((float) j / gridSize) * imageWidth);
+
+      color c = finklesteinImage.get(projectedJ, projectedI);
+
+      prevColor[i][j] = c;
+      currentColor[i][j] = c;
+    }
+  }
+}
+
+void randomSplat() {
+  for (int k = 0; k < 7; k++) {
+    color randomColor = color((int) 255 * random(), (int) 255 * random(), (int) 255 * random());
+    float x = (float) gridSize * random();
+    float y = (float) gridSize * random();
+    for (int i = (int) clamp(0, gridSize - 1, x - FORCE_RADIUS); i <= (int) clamp(0, gridSize - 1, x + FORCE_RADIUS); i++) {
+      for (int j = (int) clamp(0, gridSize - 1, y - FORCE_RADIUS); j <= (int) clamp(0, gridSize - 1, y + FORCE_RADIUS); j++) {
+        dx = x - i;
+        dy = y - j;
+        if (sqrt(dx*dx + dy*dy) < FORCE_RADIUS) {
+          currentColor[i][j] = randomColor;
+        }
+      }
+    }
+  }
+}
+
+void clear() {
+  initColor();
+  initVelocity();
+  initPressure();
+}
+
+void makeCheckerBoard() {
+  for (int i = 0; i < gridSize; i++) {
+    for (int j = 0; j < gridSize; j++) {
+      int x = floor(i / 16.0);
+      int y = floor(j / 16.0);
+      int mod = (x + y) % 2;
+      if (mod == 0) {
+        prevColor[i][j] = color(255, 255, 255);
+        currentColor[i][j] = color(255, 255, 255);
+      } else {
+        prevColor[i][j] = color(0, 0, 0);
+        currentColor[i][j] = color(0, 0, 0);
+      }
+    }
+  }
+}
+
+void makeVortex() {
+  for (int i = 0; i < gridSize; i++) {
+    for (int j = 0; j < gridSize; j++) {
+      uPrev[i][j] = (-(j - gridSize / 2.0) - (i - gridSize / 2.0)) * 3.0;
+      vPrev[i][j] = ((i - gridSize/2.0) - (j - gridSize/2.0)) * 3.0;
+    }
+  }
+}
+
+void stopMotion() {
+  initVelocity();
+  initPressure();
+}
+
+void makeVortex() {
+  for (int i = 0; i < gridSize; i++) {
+    for (int j = 0; j < gridSize; j++) {
+      float x = i - gridSize/2.0 + random(-0.001, 0.001);
+      float y = j - gridSize/2.0 + random(-0.001, 0.001);
+      float theta = atan(y/x);
+      if ((x < 0.0 && y > 0.0) || (x < 0.0 && y < 0.0)) {
+        theta += PI;
+      }
+      float velDirection = theta + PI/2.0;
+      float r = sqrt(x*x + y*y);
+      uPrev[i][j] = 5.0 * r * cos(velDirection);
+      vPrev[i][j] = 5.0 * r * sin(velDirection);
+    }
+  }
 }
