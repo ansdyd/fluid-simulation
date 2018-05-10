@@ -18,9 +18,6 @@ float[][] prevPressure = new float[gridSize][gridSize];
 color[][] prevColor = new color[gridSize][gridSize];
 color[][] currentColor = new color[gridSize][gridSize];
 
-int previousMouseX;
-int previousMouseY;
-
 void setup() {
   background(0);
   noStroke();
@@ -34,7 +31,6 @@ void setup() {
 void draw() {
   // Following the instructions given in the jos stam paper.
 
-  // TODO: Add forces.
   addForces();
 
   // Advect u.
@@ -86,7 +82,7 @@ void getPressure() {
         prevPressure[i][left]) / 4.0;
       }
     }
-    // TODO: swap pressure
+
     swapPressure();
   }
 }
@@ -183,8 +179,8 @@ void advectVelocity() {
       float prevV = vPrev[i][j];
 
       // Added some randomness here to make it look a bit more natural.
-      float du = prevU * dt + random();
-      float dv = prevV * dt + random();
+      float du = prevU * dt + random(-1, 1);
+      float dv = prevV * dt + random(-1, 1);
 
       float x = ((i - du) + gridSize * gridSize) % gridSize;
       float y = ((j - dv) + gridSize * gridSize) % gridSize;
@@ -254,27 +250,25 @@ void initPressure() {
 void addForces() {
   boolean mouseMoved = (mouseX != pmouseX) || (mouseY != pmouseY);
   if (mousePressed && mouseMoved) {
-    int x = (gridSize * mouseY) / height;
-    int y = (gridSize * mouseX) / width;
+    float x = ((float)gridSize * mouseY) / height;
+    float y = ((float)gridSize * mouseX) / width;
+    float scale = 10.0
 
-    addForce(uPrev, x, y, x - previousMouseX, FORCE_RADIUS);
-    addForce(vPrev, x, y, y - previousMouseY, FORCE_RADIUS);
+    addForce(uPrev, x, y, (mouseY - pmouseY) * scale, FORCE_RADIUS);
+    addForce(vPrev, x, y, (mouseX - pmouseX) * scale, FORCE_RADIUS);
   }
-
-  previousMouseX = mouseX;
-  previousMouseY = mouseY;
 }
 
 void addForce(float[][] field, int x, int y, float diff, float radius) {
   int i,j, dx, dy;
   float f;
 
-    for ( i = int(clamp(x-radius, 0, gridSize - 1)); i <= int(clamp(x+radius, 0 , gridSize - 1)); i++ ) {
+    for ( i = int(clamp(0, gridSize -1, x-radius)); i <= int(clamp(0 , gridSize - 1, x+radius)); i++ ) {
       dx = x - i;
-      for ( j = int(clamp(y-radius, 0, gridSize - 1)); j <= int(clamp(y+radius, 0, gridSize - 1)); j++ ) {
+      for ( j = int(clamp(0, gridSize - 1, y-radius)); j <= int(clamp(0, gridSize - 1, y+radius)); j++ ) {
         dy = y - j;
         f = 1 - ( sqrt(dx*dx + dy*dy) / radius );
-        field[i][j] += clamp(f,0,1) * diff;
+        field[i][j] += clamp(0,1,f) * diff;
       }
     }
 }
